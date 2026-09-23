@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报价王 - 在线报价单制作</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231F3864'/%3E%3Cpath d='M8 22V10l4 6 4-6v12' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M20 12h4l-4 6h4' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#1F3864;          /* 主色：取自参考报价单公司名深蓝 */
+  --ink2:#2F5597;
+  --ink3:#4472C4;
+  --paper:#FFFFFF;
+  --bg:#EDF0F6;
+  --line:#C9D0DC;
+  --line2:#E3E7EF;
+  --text:#1F2329;
+  --muted:#6B7280;
+  --danger:#C0392B;
+  --ok:#1E8E3E;
+  --amber:#B26A00;
+  --radius:8px;
+  --shadow:0 2px 10px rgba(31,56,100,.10), 0 10px 30px rgba(31,56,100,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+::placeholder{color:#A6ADBA}
+
+/* ===== 顶栏 ===== */
+.appbar{
+  position:sticky;top:0;z-index:50;height:54px;background:#fff;
+  border-bottom:1px solid var(--line2);
+  display:flex;align-items:center;gap:8px;padding:0 14px;
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px;color:var(--ink);white-space:nowrap}
+.brand .logo{width:30px;height:30px;flex:none}
+.brand small{font-weight:400;font-size:11px;color:var(--muted);display:block;line-height:1.1;margin-top:1px}
+.appbar .sep{width:1px;height:26px;background:var(--line2);margin:0 4px;flex:none}
+.appbar .spacer{flex:1}
+.tbtn{
+  display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:7px;
+  font-size:13px;color:#37415B;white-space:nowrap;transition:background .15s,border-color .15s;
+  border:1px solid transparent;
+}
+.tbtn svg{width:16px;height:16px;flex:none}
+.tbtn:hover{background:#F0F3FA}
+.tbtn:disabled{opacity:.4;cursor:not-allowed;background:none}
+.tbtn.primary{background:var(--ink);color:#fff}
+.tbtn.primary:hover{background:var(--ink2)}
+.tbtn.ghost{border-color:var(--line);background:#fff}
+.tbtn.ghost:hover{border-color:var(--ink3);color:var(--ink)}
+.tbtn.warn{color:var(--danger)}
+.tbtn.warn:hover{background:#FDF0EE}
+.status-pill{
+  font-size:11px;color:var(--muted);background:#F4F6FA;border:1px solid var(--line2);
+  padding:3px 9px;border-radius:20px;white-space:nowrap;
+}
+.status-pill.saved{color:var(--ok);background:#ECF7F0;border-color:#CBE8D4}
+.status-pill.voice{color:var(--danger);background:#FDF0EE;border-color:#F3CDC7}
+
+/* ===== 舞台 ===== */
+.stage{padding:22px 16px 80px;display:flex;justify-content:center}
+.sheet{
+  width:min(1000px,100%);background:var(--paper);box-shadow:var(--shadow);
+  border-radius:4px;padding:34px 42px 38px;
+}
+@media (max-width:720px){
+  .sheet{padding:22px 10px 30px}
+  .appbar{overflow-x:auto;gap:4px;padding:0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .appbar::-webkit-scrollbar{display:none}
+  .appbar .brand,.appbar .tbtn,.appbar .sep{flex:none}
+  .appbar .sep{display:none}
+  .status-pill{display:none}
+  input,textarea,select{font-size:16px}
+  .cell-input{font-size:14px}
+  td.c-money{font-size:13px}
+  .q-meta input{width:110px}
+  .sign-item .line,.sign-item input{width:120px}
+}
+
+/* ===== 报价单头部 ===== */
+.q-header{text-align:center;margin-bottom:16px}
+.q-company{
+  width:100%;text-align:center;border:none;outline:none;background:transparent;
+  font-size:20px;font-weight:700;color:var(--ink);padding:4px;border-radius:4px;
+}
+.q-company:focus{background:#F4F7FD}
+.q-title{
+  width:100%;text-align:center;border:none;outline:none;background:transparent;
+  font-size:16px;font-weight:700;padding:3px;border-radius:4px;
+}
+.q-title:focus{background:#F4F7FD}
+.q-meta{
+  display:flex;gap:12px;justify-content:center;align-items:center;margin-top:8px;color:#555;
+  font-size:12.5px;
+}
+.q-meta input{
+  border:none;outline:none;background:transparent;text-align:center;width:140px;
+  border-bottom:1px dashed #B9C2D4;padding:2px 4px;border-radius:2px;
+}
+.q-meta input:focus{background:#F4F7FD;border-bottom-color:var(--ink3)}
+.q-meta label{color:var(--muted)}
+
+/* ===== 表格 ===== */
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{border:1px solid var(--line);vertical-align:middle;position:relative}
+thead th{
+  background:var(--ink);color:#fff;font-weight:600;font-size:12.5px;
+  padding:8px 6px;text-align:center;letter-spacing:.3px;
+}
+tbody td{padding:0;font-size:13px}
+.main-table td.c-name{padding:4px}
+.cell-input{
+  width:100%;border:none;outline:none;background:transparent;padding:8px 7px;line-height:1.45;
+  resize:none;display:block;
+}
+.main-table tbody tr:hover{background:#F5F8FE}
+.cell-input:focus{background:#EFF5FF;box-shadow:inset 0 0 0 1px var(--ink3)}
+td.c-num{padding:0}
+td.c-num .cell-input{text-align:center}
+td.c-money{padding:8px 7px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.c-money.total{font-weight:700}
+/* 单元格操作列 */
+.row-ops{
+  display:flex;align-items:center;justify-content:center;gap:2px;padding:2px;opacity:0;
+  transition:opacity .12s;
+}
+tbody tr:hover .row-ops,.row-ops.pinned{opacity:1}
+.mini{
+  width:24px;height:24px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;
+  color:#5A6478;flex:none;
+}
+.mini svg{width:14px;height:14px}
+.mini:hover{background:#E4EBF8;color:var(--ink)}
+.mini.danger:hover{background:#FBE9E6;color:var(--danger)}
+.mini.grab{cursor:grab;color:#98A2B3}
+.mini.grab:active{cursor:grabbing}
+tr.dragging{opacity:.45}
+tr.drag-over td{box-shadow:inset 0 2px 0 var(--ink3)}
+
+/* 麦克风按钮 */
+.mic-btn{
+  position:absolute;right:3px;top:50%;transform:translateY(-50%);width:22px;height:22px;
+  border-radius:50%;background:#fff;border:1px solid var(--line);color:var(--ink2);
+  display:none;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.12);
+}
+.cell-input:focus ~ .mic-btn,.cell-wrap:hover .mic-btn,.mic-btn.show{display:flex}
+.mic-btn svg{width:12px;height:12px}
+.mic-btn.recording{background:var(--danger);border-color:var(--danger);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.15)}}
+.cell-wrap{position:relative}
+.cell-wrap .cell-input{padding-right:26px}
+
+/* ===== 合计/计算区 ===== */
+.calc-box{margin-top:12px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.calc-row{display:flex;align-items:center;border-top:1px solid var(--line2)}
+.calc-row:first-child{border-top:none}
+.calc-label{
+  flex:1;background:#F7F9FC;padding:9px 14px;font-size:13px;font-weight:600;color:#37415B;
+  border-right:1px solid var(--line2);
+}
+.calc-value{padding:7px 14px;font-size:15px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;min-width:170px;text-align:right}
+.calc-value.muted{color:var(--muted);font-weight:500;font-size:13px}
+.calc-total{background:var(--ink);color:#fff}
+.calc-total .calc-label{background:var(--ink);color:#fff;border-right-color:#4A5E8A}
+.calc-total .calc-value{color:#fff;font-size:17px}
+
+/* ===== 区块 ===== */
+.block{margin-top:26px}
+.block-head{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  font-size:14px;font-weight:700;color:var(--ink);
+}
+.block-head::before{content:"";width:4px;height:16px;background:var(--ink3);border-radius:2px}
+.block-head .actions{margin-left:auto;display:flex;gap:6px}
+.sec-label{
+  font-size:13px;font-weight:600;color:#37415B;padding:8px 0 6px;
+}
+.plain-text{
+  width:100%;border:1px solid var(--line);border-radius:6px;padding:9px 12px;font-size:13px;
+  resize:vertical;min-height:44px;outline:none;line-height:1.6;
+}
+.plain-text:focus{border-color:var(--ink3);box-shadow:0 0 0 2px rgba(68,114,196,.15)}
+
+/* 附表 */
+.appendix-card{border:1px solid var(--line);border-radius:8px;margin-bottom:16px;overflow:hidden}
+.appendix-card .ap-head{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;background:#F4F7FD;
+  border-bottom:1px solid var(--line2);
+}
+.appendix-card .ap-head input{
+  border:none;outline:none;background:transparent;font-weight:700;color:var(--ink);font-size:13.5px;flex:1;
+}
+.appendix-card .ap-head input:focus{background:#fff;border-radius:4px}
+.appendix-card .ap-body{padding:10px 12px;overflow-x:auto}
+.appendix-card table{min-width:560px}
+.appendix-card th{background:var(--ink2);color:#fff;font-weight:600;font-size:12px;padding:6px 5px}
+.appendix-card td{padding:0;font-size:12.5px}
+.appendix-card .cell-input{padding:6px 6px}
+.appendix-card .ap-summary{
+  display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:6px 12px;
+  border-top:1px solid var(--line2);background:#FAFBFD;font-size:12.5px;color:#37415B;
+}
+.appendix-card .ap-summary b{color:var(--ink);font-size:14px}
+
+/* 备注条款 */
+.note-item{
+  border:1px solid var(--line2);border-radius:8px;margin-bottom:10px;overflow:hidden;
+  transition:opacity .15s;
+}
+.note-item.disabled{opacity:.55;background:#F7F8FA}
+.note-item .ni-head{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;background:#F7F9FC;border-bottom:1px solid var(--line2);
+}
+.note-item .ni-head input[type=text]{
+  border:none;outline:none;background:transparent;font-weight:700;font-size:13px;color:var(--ink);flex:1;min-width:0;
+}
+.note-item .ni-head input[type=text]:focus{background:#fff;border-radius:4px}
+.note-item .ni-body{padding:0}
+.note-item textarea{
+  width:100%;border:none;outline:none;resize:vertical;padding:9px 12px;font-size:12.5px;line-height:1.65;min-height:52px;display:block;
+}
+.note-item textarea:focus{background:#FDFEFF;box-shadow:inset 0 0 0 1px var(--ink3)}
+.note-item textarea:disabled{background:#F7F8FA;color:#8A93A5}
+.switch{
+  width:32px;height:18px;border-radius:20px;background:#C7CEDB;position:relative;flex:none;transition:background .15s;
+}
+.switch::after{
+  content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;
+  transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2);
+}
+.switch.on{background:var(--ok)}
+.switch.on::after{left:16px}
+.tpl-tag{
+  font-size:10.5px;color:var(--ink2);background:#E7EDF9;border:1px solid #D3DEEE;
+  padding:1px 7px;border-radius:10px;white-space:nowrap;flex:none;
+}
+
+/* 签字区 */
+.sign-wrap{
+  display:flex;flex-wrap:wrap;gap:18px 34px;margin-top:34px;padding-top:14px;
+  border-top:1px solid var(--line2);font-size:13px;color:#37415B;
+}
+.sign-item{display:flex;align-items:center;gap:8px}
+.sign-item .line{
+  display:inline-block;width:150px;border-bottom:1px solid #9AA4B8;min-height:20px;text-align:center;
+}
+.sign-item input{
+  border:none;border-bottom:1px solid #9AA4B8;outline:none;width:150px;padding:2px 6px;text-align:center;background:transparent;
+}
+.sign-item input:focus{background:#F4F7FD}
+
+/* ===== 弹窗 ===== */
+.overlay{
+  position:fixed;inset:0;background:rgba(20,28,48,.45);z-index:100;display:none;
+  align-items:flex-start;justify-content:center;padding:48px 16px;overflow-y:auto;
+}
+.overlay.open{display:flex}
+.modal{
+  background:#fff;border-radius:12px;width:min(640px,100%);box-shadow:0 20px 60px rgba(0,0,0,.25);
+  animation:pop .16s ease-out;
+}
+@keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.modal-head{
+  display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line2);
+  font-size:15px;font-weight:700;color:var(--ink);
+}
+.modal-head .close{margin-left:auto;width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#6B7280}
+.modal-head .close:hover{background:#F0F3FA;color:var(--ink)}
+.modal-body{padding:16px 18px;max-height:64vh;overflow-y:auto}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:13px 18px;border-top:1px solid var(--line2)}
+
+/* 草稿列表 */
+.draft-item{
+  display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--line2);border-radius:8px;
+  margin-bottom:8px;cursor:pointer;transition:border-color .12s,background .12s;
+}
+.draft-item:hover{border-color:var(--ink3);background:#F7FAFF}
+.draft-item .di-name{font-weight:600;font-size:13.5px}
+.draft-item .di-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+.draft-item .di-actions{margin-left:auto;display:flex;gap:4px;flex:none}
+.empty-tip{text-align:center;color:var(--muted);padding:28px 10px;font-size:13px}
+
+/* 模板卡片 */
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.tpl-card{
+  border:1px solid var(--line2);border-radius:9px;padding:12px 13px;cursor:pointer;transition:border-color .12s,box-shadow .12s;
+}
+.tpl-card:hover{border-color:var(--ink3);box-shadow:0 3px 10px rgba(31,56,100,.08)}
+.tpl-card .tc-title{font-weight:700;font-size:13px;color:var(--ink);display:flex;align-items:center;gap:6px}
+.tpl-card .tc-desc{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+.tpl-card .tc-badge{
+  font-size:10px;background:var(--ink3);color:#fff;border-radius:10px;padding:1px 7px;margin-left:auto;flex:none;
+}
+.tpl-card.custom .tc-badge{background:#7C8AA5}
+.tpl-card .tc-del{margin-left:6px;color:var(--danger);width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center}
+.tpl-card .tc-del:hover{background:#FBE9E6}
+.tpl-card .tc-del svg{width:12px;height:12px}
+
+/* 表单行 */
+.f-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.f-row label{width:110px;font-size:13px;color:#37415B;flex:none}
+.f-row input[type=text],.f-row input[type=number],.f-row select{
+  border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:13px;outline:none;flex:1;min-width:120px;
+}
+.f-row input:focus,.f-row select:focus{border-color:var(--ink3);box-shadow:0 0 0 2px rgba(68,114,196,.15)}
+.f-row .hint{font-size:11.5px;color:var(--muted);width:100%;margin-left:120px}
+.btn{
+  height:34px;padding:0 16px;border-radius:7px;font-size:13px;font-weight:600;display:inline-flex;
+  align-items:center;gap:6px;transition:background .15s;
+}
+.btn svg{width:15px;height:15px}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.primary:hover{background:var(--ink2)}
+.btn.secondary{background:#fff;border:1px solid var(--line);color:#37415B}
+.btn.secondary:hover{border-color:var(--ink3);color:var(--ink)}
+.btn.danger{background:#FDF0EE;border:1px solid #F3CDC7;color:var(--danger)}
+.btn.danger:hover{background:#FBE3DF}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Toast */
+#toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);z-index:200;
+  background:#26324D;color:#fff;padding:10px 20px;border-radius:9px;font-size:13px;
+  opacity:0;pointer-events:none;transition:all .22s;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:82vw;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.error{background:#8E2B20}
+
+/* 语音指示条 */
+#voiceBar{
+  position:fixed;left:50%;top:66px;transform:translateX(-50%);z-index:90;
+  background:var(--danger);color:#fff;padding:9px 18px;border-radius:9px;font-size:13px;
+  display:none;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(140,40,30,.35);
+}
+#voiceBar.show{display:flex}
+#voiceBar .dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+#voiceBar .vtext b{color:#FFE3A3}
+#voiceBar button{
+  background:rgba(255,255,255,.18);color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;
+}
+#voiceBar button:hover{background:rgba(255,255,255,.32)}
+
+/* 帮助提示 */
+.help-tip{font-size:11.5px;color:var(--muted);margin-top:8px;text-align:center}
+kbd{
+  background:#F0F3FA;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;
+  padding:0 5px;font-size:11px;font-family:inherit;
+}
+
+/* ===== 打印 ===== */
+@media print{
+  body{background:#fff}
+  .appbar,.status-pill,.overlay,#toast,#voiceBar,.row-ops,.mic-btn,.help-tip,.no-print,.empty-tip,
+  .mini,.switch,.ap-head .actions,.block-head .actions,.ap-body .mini{display:none !important}
+  .stage{padding:0;display:block}
+  .sheet{width:100%;box-shadow:none;padding:10mm 12mm;border-radius:0}
+  .note-item.disabled{display:none}
+  .q-company:focus,.q-title:focus,.cell-input:focus,.plain-text:focus,.q-meta input:focus{background:transparent !important;box-shadow:none !important}
+  .cell-input,.plain-text,.q-meta input,.q-company,.q-title{border:none !important;outline:none !important}
+  .calc-box{border:1px solid #444}
+  .note-item{border:1px solid #999}
+  .appendix-card{border:1px solid #666}
+  thead th{background:#1F3864 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .calc-total{background:#1F3864 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .appendix-card th{background:#2F5597 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4;margin:8mm}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 顶栏 ===== -->
+<header class="appbar">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#1F3864"/><path d="M8 22V10l4 6 4-6v12" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12h4l-4 6h4" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>报价王<small>在线报价单制作</small></span>
+  </div>
+  <div class="sep"></div>
+  <button class="tbtn" id="btnNew" title="新建报价单（Ctrl+N）">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>新建
+  </button>
+  <button class="tbtn" id="btnDrafts" title="保存的草稿">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>草稿
+  </button>
+  <div class="sep"></div>
+  <button class="tbtn" id="btnUndo" title="撤销（Ctrl+Z）">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>撤销
+  </button>
+  <button class="tbtn" id="btnRedo" title="重做（Ctrl+Y）">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg>重做
+  </button>
+  <div class="sep"></div>
+  <button class="tbtn" id="btnAppTpl" title="选择标准附表 / 自定义附表模板">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg>附表库
+  </button>
+  <button class="tbtn" id="btnNoteTpl" title="备注条款模板切换">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>备注模板
+  </button>
+  <button class="tbtn" id="btnCalc" title="税金 / 折扣 / 运费 / 总价设置">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 13h8M8 18h5"/><circle cx="17" cy="17" r="1.6"/></svg>金额设置
+  </button>
+  <div class="spacer"></div>
+  <button class="tbtn ghost" id="btnSave" title="保存为草稿（Ctrl+S）">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l4 4v12H5z"/><path d="M8 4v5h8V4M8 20v-6h8v6"/></svg>保存
+  </button>
+  <button class="tbtn primary" id="btnPrint" title="打印 / 另存为 PDF">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>打印/PDF
+  </button>
+  <button class="tbtn ghost" id="btnExcel" title="导出 Excel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8l4 4m0 0l4-4M12 12v6"/></svg>Excel
+  </button>
+  <button class="tbtn ghost" id="btnShare" title="生成分享链接">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="17" cy="6" r="2.5"/><circle cx="17" cy="18" r="2.5"/><path d="M8.3 10.8l6.4-3.6M8.3 13.2l6.4 3.6"/></svg>分享
+  </button>
+  <span class="status-pill" id="saveStatus">已自动保存</span>
+</header>
+
+<!-- 语音指示条 -->
+<div id="voiceBar"><span class="dot"></span><span class="vtext">正在听写：<b id="voiceTarget">—</b>，请说出内容…</span><button id="voiceStopBtn">完成</button></div>
+
+<!-- ===== 舞台 ===== -->
+<main class="stage">
+  <div class="sheet" id="sheet">
+
+    <!-- 头部 -->
+    <div class="q-header">
+      <input class="q-company" id="fCompany" placeholder="公司名称">
+      <input class="q-title" id="fTitle" placeholder="报价单标题">
+      <div class="q-meta">
+        <label>工程编号：</label><input id="fProjectNo" placeholder="____">
+        <label>报价日期：</label><input id="fDate" type="date">
+      </div>
+    </div>
+
+    <!-- 报价明细表 -->
+    <table class="main-table" id="mainTable">
+      <colgroup>
+        <col style="width:38px"><col style="width:15%"><col style="width:auto"><col style="width:58px">
+        <col style="width:52px"><col style="width:76px"><col style="width:86px"><col style="width:92px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>序号</th><th>项目名称</th><th>施工内容及说明</th><th>数量</th><th>单位</th><th>单价（元）</th><th>金额（元）</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="mainTbody"></tbody>
+    </table>
+
+    <!-- 合计与可选计算 -->
+    <div class="calc-box" id="calcBox"></div>
+
+    <!-- 业主自购 -->
+    <div class="block no-print">
+      <div class="sec-label">业主自购说明</div>
+      <textarea class="plain-text" id="fSelf" placeholder="例：业主自购：800×800地砖约26片、开关插座约400元（预估）。"></textarea>
+    </div>
+
+    <!-- 附表区 -->
+    <div class="block">
+      <div class="block-head">
+        <span>标准附表</span>
+        <span class="actions no-print">
+          <button class="tbtn ghost" id="btnAddAppendix" style="height:30px;padding:0 10px">+ 添加附表</button>
+        </span>
+      </div>
+      <div id="appendixArea"></div>
+    </div>
+
+    <!-- 备注与条款 -->
+    <div class="block">
+      <div class="block-head">
+        <span>备注与条款</span>
+        <span class="actions no-print">
+          <button class="tbtn ghost" id="btnNoteAllOn" style="height:30px;padding:0 10px">全启用</button>
+          <button class="tbtn ghost" id="btnNoteAllOff" style="height:30px;padding:0 10px">全取消</button>
+          <button class="tbtn ghost" id="btnAddNote" style="height:30px;padding:0 10px">+ 新增条款</button>
+        </span>
+      </div>
+      <div id="noteArea"></div>
+    </div>
+
+    <!-- 签字区 -->
+    <div class="sign-wrap" id="signWrap">
+      <div class="sign-item">业主（甲方）签字：<input id="fSignA" placeholder="____________________"></div>
+      <div class="sign-item">施工方（乙方）签字：<input id="fSignB" placeholder="____________________"></div>
+      <div class="sign-item">日期：<input id="fSignDate" placeholder="______年____月____日"></div>
+    </div>
+
+    <div class="help-tip no-print">支持键盘输入与语音输入（点击输入框右侧麦克风）；行可拖拽排序；所有修改自动保存，可撤销/重做。</div>
+  </div>
+</main>
+
+<!-- ===== 弹窗：草稿 ===== -->
+<div class="overlay" id="ovDrafts">
+  <div class="modal">
+    <div class="modal-head">保存的草稿<span class="close" data-close="ovDrafts"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+    <div class="modal-body" id="draftList"></div>
+    <div class="modal-foot"><button class="btn secondary" data-close="ovDrafts">关闭</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：附表模板库 ===== -->
+<div class="overlay" id="ovAppTpl">
+  <div class="modal">
+    <div class="modal-head">附表模板库<span class="close" data-close="ovAppTpl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+    <div class="modal-body">
+      <div class="sec-label" style="padding-top:0">标准附表（来自参考报价单）</div>
+      <div class="tpl-grid" id="stdAppGrid"></div>
+      <div class="sec-label">我的自定义附表模板</div>
+      <div class="tpl-grid" id="customAppGrid"></div>
+      <div class="empty-tip" id="customAppEmpty" style="display:none">还没有自定义模板——编辑附表后点「另存为模板」即可保存。</div>
+    </div>
+    <div class="modal-foot"><button class="btn secondary" data-close="ovAppTpl">关闭</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：备注模板 ===== -->
+<div class="overlay" id="ovNoteTpl">
+  <div class="modal">
+    <div class="modal-head">备注条款模板<span class="close" data-close="ovNoteTpl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+    <div class="modal-body">
+      <div class="sec-label" style="padding-top:0">选择模板套用（覆盖当前备注）</div>
+      <div class="tpl-grid" id="noteTplGrid"></div>
+      <div class="sec-label">把当前备注保存为模板</div>
+      <div class="f-row" style="margin-top:8px">
+        <label>模板名称</label>
+        <input type="text" id="noteTplName" placeholder="如：工装标准条款">
+        <button class="btn primary" id="btnSaveNoteTpl">保存为模板</button>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn secondary" data-close="ovNoteTpl">关闭</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：金额设置 ===== -->
+<div class="overlay" id="ovCalc">
+  <div class="modal">
+    <div class="modal-head">金额计算设置<span class="close" data-close="ovCalc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+    <div class="modal-body">
+      <div class="f-row"><label>折扣</label><select id="cDiscountMode"><option value="off">不使用</option><option value="percent">按百分比</option><option value="amount">按固定金额</option></select></div>
+      <div class="f-row" id="cDiscountRow" style="display:none">
+        <label id="cDiscountLabel">折扣比例</label>
+        <input type="number" id="cDiscount" step="0.01" min="0" placeholder="0">
+        <span class="hint" id="cDiscountHint"></span>
+      </div>
+      <div class="f-row"><label>运费</label><input type="number" id="cFreight" step="0.01" min="0" placeholder="0" value="0"></div>
+      <div class="f-row"><label>税率（%）</label><input type="number" id="cTax" step="0.01" min="0" placeholder="0" value="0"><span class="hint">0 表示不含税；填入税率后自动计算税额与含税总价。</span></div>
+      <div class="f-row"><label>合计标题</label><input type="text" id="cSubLabel" value="合计金额（元，税前）"><span class="hint">修改合计行左侧文字（默认沿用参考报价单）。</span></div>
+    </div>
+    <div class="modal-foot"><button class="btn primary" data-close="ovCalc">完成</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：分享 ===== -->
+<div class="overlay" id="ovShare">
+  <div class="modal">
+    <div class="modal-head">生成分享链接<span class="close" data-close="ovShare"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+    <div class="modal-body">
+      <div class="f-row"><label>链接</label><input type="text" id="shareUrl" readonly style="background:#F7F9FC"></div>
+      <div class="f-row"><span class="hint" style="margin-left:0">打开链接即可恢复此报价单的全部内容（存于链接内，无需服务器）。链接较长属正常现象。</span></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary" id="btnShareCopy">复制链接</button>
+      <button class="btn primary" data-close="ovShare">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ==== APP JS ==== -->
+<script>
+"use strict";
+/* =====================================================================
+ * 报价王 v1.0 —— 纯前端在线报价单制作
+ * 结构基准：长沙柏嘉装饰工程有限公司装修报价单（用户提供 .xlsx）
+ * ===================================================================== */
+
+/* ---------- 1. 参考模板数据（解析自用户提供的 xlsx） ---------- */
+const REF_ITEMS = [
+  {name:"地膜", desc:"全屋地面贴膜（含空调风口、电梯厅）。含：人工＋地膜。", qty:1, unit:"项", price:500},
+  {name:"水电开关插座移位", desc:"64个（预估）×80元/个＝5120元，以实际改动为准。含：人工、开槽、电线（金杯2.5平方线，单个用电超3千瓦用4平方线）、封槽、底盒、后期面板安装；不含：腻子修复、增加的开关插座面板。", qty:64, unit:"个", price:80},
+  {name:"主卧卫生间门换向", desc:"含：人工、开门洞、砌墙、刷防水、贴砖（含砖）；不含：门、腻子修复。", qty:1, unit:"项", price:1500},
+  {name:"垛子拆除，原窗帘盒封平，更换三片地砖", desc:"原窗帘盒封平、更换3片地砖。含：人工、垃圾清运、水泥、沙、欧松板、石膏板；不含：腻子修复。", qty:1, unit:"项", price:1100},
+  {name:"窗台3片瓷砖拆除＋铺贴", desc:"含：人工、瓷砖胶；不含：瓷砖。", qty:1, unit:"项", price:200},
+  {name:"大阳台窗帘盒", desc:"含：人工、欧松板、石膏板、辅材；不含：腻子修复。", qty:1, unit:"项", price:1100},
+  {name:"凹墙改直", desc:"含：拆墙、垃圾清运、砌墙、粉平、挂网、植筋、木地板通铺；不含：腻子修复、木地板。", qty:1, unit:"项", price:1200},
+  {name:"二卫一厨石膏板换铝扣板吊顶", desc:"含：原石膏板顶拆除、垃圾清运；铝扣板吊顶人工＋材料（300×600铝扣板，320克/片）；灯、浴霸复原；不含：灯。", qty:1, unit:"项", price:2450},
+  {name:"次卫坐改蹲", desc:"开发商洁具全部拆除、沉箱及墙面瓷砖全部拆除、门口两边半堵墙垛子拆除、淋浴龙头位置更换（改水管）；地面做二遍防水、墙面湿区防水1.5米高（干区90公分高）、试水48水时；PVC管道（排水，除主管道外）全部更换；找平后再做二遍防水、贴砖复原（含水泥、沙子、瓷砖、人工）；不含：卫生间门和玻璃隔断。", qty:1, unit:"项", price:6500},
+  {name:"次卫地砖铺贴（600×600）\n次卫墙砖铺贴（400×800）", desc:"含：人工、水泥、沙；不含：地砖。", qty:1, unit:"项", price:1000},
+  {name:"加装九牧蹲便器", desc:"此项也可由业主自行购买。", qty:1, unit:"项", price:300},
+  {name:"回风口改造", desc:"3个×100元/个＝300元。含：人工＋材料；不含：定制回风口。", qty:3, unit:"个", price:100},
+  {name:"窗帘盒加宽", desc:"主卧窗帘盒加宽3米×160元/米＝480元；北向大次卧窗帘盒加宽2米×160元/米＝320元，合计800元。含：开槽、垃圾清运、人工、石膏板、欧松板、辅材；不含：腻子修复。", qty:5, unit:"米", price:160},
+  {name:"全房木门拆除、清运", desc:"免费。", qty:1, unit:"项", price:0},
+  {name:"设备阳台铝合金门拆除", desc:"按市场价回收。", qty:1, unit:"项", price:0},
+  {name:"家政间改造", desc:"①拆除类800元：门框混凝土拆除、推拉门拆除、墙体拆除、原阳台地面拆除、原窗帘盒拆除、木地板拆除；②修复及新增类2300元：鞋柜墙体拆除修复、吊顶修复200元、加边顶6米×150元/米＝900元、双眼皮恢复（原窗帘盒）200元、阳台封窗后吊顶（晾衣架造型）、阳台窗帘盒；③地面及空调类3000元：地面瓷砖通铺12㎡×90元/㎡＝1080元、做空调台＋刷防水、改空调排水、空调孔贴砖。含：人工、水泥、沙、瓷砖、垃圾清运、防水、空调台瓷砖、欧松板、石膏板；不含：地砖、腻子修复。", qty:1, unit:"项", price:6100},
+  {name:"墙面修复", desc:"新建吊顶、窗帘盒、拆墙接口、线槽。含：人工、立邦腻子粉、石膏、网带、角线、辅材；打磨平整后达到做艺术漆或乳胶漆的要求。", qty:1, unit:"项", price:3000},
+  {name:"打底", desc:"主卧床头3.7㎡×110元/㎡＝407元；入户2.55×2.4＝6.12㎡×110元/㎡＝673元；餐厅酒柜面2.9×2.4＝6.96㎡×110元/㎡＝765元；沙发背景墙4.55×2.4＝10.92㎡×110元/㎡＝1201元；阳台0.8×2.4＝1.92㎡×110元/㎡＝211元；过道3.2×2.4＝7.68㎡×110元/㎡＝844元；次卧对面1.1×2.4＝2.64㎡×110元/㎡＝290元，合计4391元。含：人工、万象（ENF级欧松板）9厘、辅材。", qty:1, unit:"项", price:4391},
+  {name:"电视墙", desc:"4.55米×2.1米＝9.55㎡×260元/㎡＝2483元；灯带加变压器400元，合计2883元。含：人工、木方、欧松板、石膏板、灯带、变压器；不含：墙面修复。", qty:1, unit:"项", price:2883},
+  {name:"吊顶加宽（边顶加宽）", desc:"阳台柜阴角框2米×150元/米×2（个）＝600元；女孩房3米×150元/米＝450元，合计1050元。含：人工、木方、欧松板、石膏板、辅材；不含：腻子修复。", qty:1, unit:"项", price:1050},
+  {name:"设备阳台50管入墙", desc:"含：开槽、50PVC管、人工、辅材。", qty:1, unit:"项", price:400},
+  {name:"网线", desc:"北向2个次卧网线550元；电视背景墙网线2条300元，合计850元。含：人工＋网线（秋叶原6类）；不含面板。", qty:1, unit:"项", price:850},
+  {name:"洗衣机排水打孔", desc:"含：打孔。", qty:1, unit:"项", price:150},
+  {name:"柜体与墙面垂直度修复", desc:"打红外线、放角线、石膏找平。", qty:1, unit:"项", price:1000}
+];
+
+/* 标准附表模板（解析自参考文件左右两栏） */
+const STANDARD_APPENDICES = [
+  {
+    id:"std_switch", type:"点位", title:"附表：开关插座点位及费用明细",
+    columns:["序号","区域","点位明细","合计（个）"], sumCol:3, sumLabel:"合计（个）",
+    rows:[
+      ["主卧","插座3个、开关1个",4],["主卫","开关5个",5],["次卫","插座2个",2],
+      ["厨房","开关4个、插座5个",9],["北向次卧","开关4个、插座5个",9],["阳台次卧","开关3个",3],
+      ["阳台柜","插座3个、水1个",4],["厨房冰箱","插座1个",1],["阳台柜（西向）","插座1个、灯线1个",2],
+      ["窗帘盒","电源2个",2],["客厅","50管1个、插座3个",4],["沙发背景","开关1个、插座5个",6],
+      ["餐边柜","插座3个",3],["家政间","插座4个、水3个、排水1个、开关1个",9],["设备阳台","空调电源1个",1]
+    ]
+  },
+  {
+    id:"std_material", type:"材料", title:"附表：材料品牌型号备注",
+    columns:["序号","材料名称","品牌/型号规格"], sumCol:-1, sumLabel:"",
+    rows:[
+      ["防水","东方雨虹（JS）"],["水管","南方"],["瓷砖","大禹飞途3型"],["背胶","德高"],
+      ["腻子粉","立邦"],["欧松板","万象 ENF"],["石膏板","龙牌"],["PVC管","联塑"],["PPR管","联塑进水管"]
+    ]
+  }
+];
+
+/* 默认备注模板（解析自参考文件 A51-A53 的 7 条条款 + 2 条附加说明） */
+const DEFAULT_NOTE_TEMPLATES = [
+  {
+    id:"std_full", name:"默认完整条款", builtin:true, desc:"含工期、质保、结算、付款、增项、安全、税费 7 条约定及 2 条附加说明",
+    clauses:[
+      {title:"1. 工期约定", text:"本工程总施工工期 30 天，工期自乙方实际进场施工当日起算。因甲方、开发商原因、现场不具备施工条件、甲方材料/方案确认滞后、甲方指令变更或不可抗力因素造成停工、工期延误的，工期相应顺延，且乙方不承担任何逾期违约责任。"},
+      {title:"2. 质保维保约定", text:"本工程质保维保期为二年。仅因乙方施工工艺、材料本身质量问题由乙方免费维保；凡因甲方使用不当、人为损坏、第三方破坏、装修改动、环境因素、甲方自行改动管线结构等甲方原因引发的故障、损坏，不属于免费维保范围，乙方可据实收取人工、材料相关维保费用。"},
+      {title:"3. 结算审核约定", text:"工程竣工验收合格后，乙方提交完整工程结算资料。甲方收到结算资料后 7 日内完成审核；审核无异议的，应于审核完成后 7 日内足额支付对应工程款。甲方自收到乙方结算资料之日起 7 个工作日内未以书面形式提出有效异议的，视为甲方完全认可乙方提交的结算金额，不得再以任何理由拖延、拒付工程款。"},
+      {title:"4. 工程款支付节点", text:"（1）乙方进场施工前，甲方支付首期工程款 2000元；\n（2）拆除水电完成后，甲方支付总价工程款 50%；\n（3）泥工木工工程完期后，支付工程款95%；\n（4）剩余 5% 尾款，于全部工程竣工验收合格后 7 日内一次性全额付清。\n甲方逾期支付任意一期款项的，乙方有权暂停施工，由此产生工期延误、人工窝工损失由甲方承担，工期相应顺延。"},
+      {title:"5. 工程增项约定", text:"施工期间产生工程增项、变更项目的，甲方应当在增项开工前与乙方确认价款并足额预付增项工程款。甲方未按期支付增项款项，乙方有权暂缓实施该部分增项工程，由此造成的工期延误及相关损失由甲方承担。"},
+      {title:"6. 安全责任约定", text:"施工过程乙方如有发生安全事故，乙方负全部责任，与甲方无关。"},
+      {title:"7. 税费约定", text:"以上报价均为税前价格（不含税）；如需开具发票，相关税费另计。"},
+      {title:"8. 施工配合说明", text:"装修手续由业主办理，本公司提供所需证件；装修垃圾清运至物业指定点，外运费用由业主自理。"},
+      {title:"9. 外部工程配合", text:"空调移机、消防喷头移位，本公司可帮忙联系相关单位，费用由业主自理。"}
+    ]
+  },
+  {
+    id:"std_short", name:"精简条款", builtin:true, desc:"仅工期、质保、付款节点、税费 4 条核心约定",
+    clauses:[
+      {title:"1. 工期约定", text:"本工程总施工工期 30 天，工期自乙方实际进场施工当日起算。因甲方原因或不可抗力造成停工、工期延误的，工期相应顺延，且乙方不承担任何逾期违约责任。"},
+      {title:"2. 质保维保约定", text:"本工程质保维保期为二年。仅因乙方施工工艺、材料本身质量问题由乙方免费维保；甲方原因引发的故障、损坏不在免费维保范围内。"},
+      {title:"3. 工程款支付节点", text:"（1）乙方进场施工前，甲方支付首期工程款 2000元；\n（2）拆除水电完成后，甲方支付总价工程款 50%；\n（3）泥工木工工程完期后，支付工程款95%；\n（4）剩余 5% 尾款，于全部工程竣工验收合格后 7 日内一次性全额付清。"},
+      {title:"4. 税费约定", text:"以上报价均为税前价格（不含税）；如需开具发票，相关税费另计。"}
+    ]
+  }
+];
+
+/* ---------- 2. 状态 ---------- */
+const LS_CURRENT = "baojiawang_current_v1";
+const LS_DRAFTS  = "baojiawang_drafts_v1";
+const LS_APP_TPL = "baojiawang_appendix_tpl_v1";
+const LS_NOTE_TPL= "baojiawang_note_tpl_v1";
+
+let quote = null;      // 当前报价单对象
+let history = [];      // 撤销/重做历史
+let hIdx = -1;
+let uidSeq = 1;
+
+function uid(){ return "u" + (Date.now().toString(36)) + "_" + (uidSeq++); }
+
+function newQuote(){
+  const today = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  return {
+    id: uid(),
+    header:{
+      company:"长沙柏嘉装饰工程有限公司",
+      title:"装修工程报价单",
+      projectNo:"",
+      date: today.getFullYear() + "-" + pad(today.getMonth()+1) + "-" + pad(today.getDate())
+    },
+    items: REF_ITEMS.map(it => ({id:uid(), name:it.name, desc:it.desc, qty:it.qty, unit:it.unit, price:it.price})),
+    calc:{ subLabel:"合计金额（元，税前）", discountMode:"off", discount:0, freight:0, tax:0 },
+    selfPurchase:"业主自购：800×800地砖约26片、开关插座约400元（预估）。",
+    appendices: STANDARD_APPENDICES.map(t => ({
+      id:uid(), title:t.title, columns:t.columns.slice(), sumCol:t.sumCol, sumLabel:t.sumLabel,
+      rows:t.rows.map(r => r.slice()), custom:false
+    })),
+    notes: DEFAULT_NOTE_TEMPLATES[0].clauses.map(c => ({id:uid(), title:c.title, text:c.text, enabled:true})),
+    signature:{ partyA:"", partyB:"", date:"" }
+  };
+}
+
+/* ---------- 3. 工具函数 ---------- */
+function money(n){
+  n = Number(n) || 0;
+  return n.toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function itemAmount(it){ return (Number(it.qty)||0) * (Number(it.price)||0); }
+function subtotal(){ return quote.items.reduce((s,it) => s + itemAmount(it), 0); }
+
+function esc(s){
+  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+/* 计算折扣额 / 税额 / 总价 */
+function calcTotals(){
+  const st = subtotal();
+  const c = quote.calc;
+  let discount = 0;
+  if(c.discountMode === "percent") discount = st * (Number(c.discount)||0) / 100;
+  else if(c.discountMode === "amount") discount = Math.min(st, Number(c.discount)||0);
+  const afterDiscount = st - discount;
+  const tax = afterDiscount * (Number(c.tax)||0) / 100;
+  const freight = Number(c.freight)||0;
+  const total = afterDiscount + tax + freight;
+  return {st, discount, afterDiscount, tax, freight, total, showCalc: (c.discountMode!=="off" || freight>0 || (Number(c.tax)||0)>0)};
+}
+
+/* ---------- 4. 存储 ---------- */
+function saveCurrent(){ try{ localStorage.setItem(LS_CURRENT, JSON.stringify(quote)); }catch(e){} }
+function loadCurrent(){ try{ const s = localStorage.getItem(LS_CURRENT); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+function getDrafts(){ try{ return JSON.parse(localStorage.getItem(LS_DRAFTS) || "[]"); }catch(e){ return []; } }
+function setDrafts(d){ try{ localStorage.setItem(LS_DRAFTS, JSON.stringify(d)); }catch(e){} }
+function getAppTpls(){ try{ return JSON.parse(localStorage.getItem(LS_APP_TPL) || "[]"); }catch(e){ return []; } }
+function setAppTpls(d){ try{ localStorage.setItem(LS_APP_TPL, JSON.stringify(d)); }catch(e){} }
+function getNoteTpls(){ try{ return JSON.parse(localStorage.getItem(LS_NOTE_TPL) || "[]"); }catch(e){ return []; } }
+function setNoteTpls(d){ try{ localStorage.setItem(LS_NOTE_TPL, JSON.stringify(d)); }catch(e){} }
+
+/* ---------- 5. 撤销 / 重做 ---------- */
+function snapshot(){
+  history = history.slice(0, hIdx + 1);
+  history.push(JSON.parse(JSON.stringify(quote)));
+  if(history.length > 100) history.shift();
+  hIdx = history.length - 1;
+  updateUndoBtns();
+  scheduleSave();
+}
+function undo(){
+  if(hIdx > 0){ hIdx--; quote = JSON.parse(JSON.stringify(history[hIdx])); renderAll(); scheduleSave(); }
+}
+function redo(){
+  if(hIdx < history.length - 1){ hIdx++; quote = JSON.parse(JSON.stringify(history[hIdx])); renderAll(); scheduleSave(); }
+}
+function updateUndoBtns(){
+  document.getElementById("btnUndo").disabled = hIdx <= 0;
+  document.getElementById("btnRedo").disabled = hIdx >= history.length - 1;
+}
+
+/* 自动保存（防抖） */
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  const pill = document.getElementById("saveStatus");
+  pill.textContent = "保存中…"; pill.className = "status-pill";
+  saveTimer = setTimeout(() => { saveCurrent(); pill.textContent = "已自动保存"; pill.className = "status-pill saved"; }, 600);
+}
+
+/* ---------- 6. 渲染 ---------- */
+function cellHtml(id, value, type, extra){
+  const cls = type === "num" ? "cell-input c-num-in" : "cell-input";
+  const align = type === "num" ? "style='text-align:center'" : "";
+  const ta = type === "text" ? "<textarea class='cell-input' rows='1' data-cell='" + id + "' data-type='text'>" + esc(value) + "</textarea>" : "";
+  const inp = type === "num" || type === "plain" ?
+    "<input class='cell-input' data-cell='" + id + "' data-type='" + type + "' value='" + esc(value) + "' inputmode='" + (type==="num"?"decimal":"text") + "' " + (extra||"") + ">" : "";
+  return "<div class='cell-wrap'>" + (ta || inp) + "<button class='mic-btn' data-mic='" + id + "' title='语音输入'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='3' width='6' height='11' rx='3'/><path d='M5 11a7 7 0 0 0 14 0M12 18v3'/></svg></button></div>";
+}
+
+function renderItems(){
+  const tb = document.getElementById("mainTbody");
+  tb.innerHTML = quote.items.map((it, idx) => {
+    const amount = itemAmount(it);
+    return "<tr data-id='" + it.id + "' draggable='true'>" +
+      "<td class='c-num'><div class='cell-wrap'><span class='cell-input' style='text-align:center;display:block;padding:8px 4px'>" + (idx+1) + "</span></div></td>" +
+      "<td class='c-name'>" + cellHtml(it.id + "_name", it.name, "plain") + "</td>" +
+      "<td class='c-name'>" + cellHtml(it.id + "_desc", it.desc, "text") + "</td>" +
+      "<td class='c-num'>" + cellHtml(it.id + "_qty", it.qty, "num") + "</td>" +
+      "<td class='c-num'>" + cellHtml(it.id + "_unit", it.unit, "plain") + "</td>" +
+      "<td class='c-num'>" + cellHtml(it.id + "_price", it.price, "num") + "</td>" +
+      "<td class='c-money'>" + money(amount) + "</td>" +
+      "<td class='c-num'><div class='row-ops'>" +
+        "<button class='mini grab' title='拖拽排序'><svg viewBox='0 0 24 24' fill='currentColor'><circle cx='9' cy='6' r='1.6'/><circle cx='15' cy='6' r='1.6'/><circle cx='9' cy='12' r='1.6'/><circle cx='15' cy='12' r='1.6'/><circle cx='9' cy='18' r='1.6'/><circle cx='15' cy='18' r='1.6'/></svg></button>" +
+        "<button class='mini' data-act='copy' title='复制此行'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='9' y='9' width='11' height='11' rx='2'/><path d='M5 15V5a2 2 0 0 1 2-2h10'/></svg></button>" +
+        "<button class='mini danger' data-act='del' title='删除此行'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13'/></svg></button>" +
+      "</div></td></tr>";
+  }).join("") +
+  "<tr class='no-print' style='background:#F7F9FC'><td colspan='8' style='border:none;padding:6px'>" +
+    "<div style='display:flex;gap:6px;justify-content:center'>" +
+      "<button class='tbtn ghost' id='btnAddItem' style='height:30px'>+ 增加报价项</button>" +
+    "</div></td></tr>";
+  renderCalc();
+}
+
+function renderCalc(){
+  const box = document.getElementById("calcBox");
+  const t = calcTotals();
+  let html = "<div class='calc-row calc-total'><div class='calc-label'>" + esc(quote.calc.subLabel || "合计金额（元，税前）") + "</div><div class='calc-value'>¥ " + money(t.st) + "</div></div>";
+  if(t.showCalc){
+    if(t.discount > 0){
+      html += "<div class='calc-row'><div class='calc-label'>折扣（" + (quote.calc.discountMode==="percent" ? quote.calc.discount + "%" : "金额") + "）</div><div class='calc-value muted'>- ¥ " + money(t.discount) + "</div></div>";
+    }
+    if(Number(quote.calc.tax) > 0){
+      html += "<div class='calc-row'><div class='calc-label'>税金（" + (Number(quote.calc.tax)||0) + "%）</div><div class='calc-value muted'>+ ¥ " + money(t.tax) + "</div></div>";
+    }
+    if(t.freight > 0){
+      html += "<div class='calc-row'><div class='calc-label'>运费</div><div class='calc-value muted'>+ ¥ " + money(t.freight) + "</div></div>";
+    }
+    html += "<div class='calc-row calc-total'><div class='calc-label'>最终总价</div><div class='calc-value'>¥ " + money(t.total) + "</div></div>";
+  }
+  box.innerHTML = html;
+}
+
+function renderAppendices(){
+  const area = document.getElementById("appendixArea");
+  if(!quote.appendices.length){
+    area.innerHTML = "<div class='empty-tip' style='border:1px dashed var(--line);border-radius:8px'>当前报价单未添加附表。可点击右上角「+ 添加附表」从标准附表库选择。</div>";
+    return;
+  }
+  area.innerHTML = quote.appendices.map(ap => {
+    const body = ap.rows.map((r, ri) => {
+      const cells = ap.columns.map((col, ci) => {
+        const isSum = ci === 0;
+        if(isSum){
+          return "<td class='c-num'><span class='cell-input' style='text-align:center;display:block;padding:6px 4px'>" + (ri+1) + "</span></td>";
+        }
+        const fid = ap.id + "_r" + ri + "_c" + ci;
+        return "<td class='c-name'>" + cellHtml(fid, r[ci-1], "plain") + "</td>";
+      }).join("");
+      const ops = "<td class='c-num'><div class='row-ops pinned'><button class='mini' data-ap='" + ap.id + "' data-ri='" + ri + "' data-apact='copy' title='复制行'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='9' y='9' width='11' height='11' rx='2'/><path d='M5 15V5a2 2 0 0 1 2-2h10'/></svg></button><button class='mini danger' data-ap='" + ap.id + "' data-ri='" + ri + "' data-apact='del' title='删除行'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13'/></svg></button></div></td>";
+      return "<tr>" + cells + ops + "</tr>";
+    }).join("");
+    let sumRow = "";
+    if(ap.sumCol > 0){
+      const sum = ap.rows.reduce((s,r) => s + (Number(r[ap.sumCol-1])||0), 0);
+      const span = ap.columns.length - 1;
+      sumRow = "<div class='ap-summary'>" + esc(ap.sumLabel || "合计") + "：<b>" + sum + "</b></div>";
+    }
+    return "<div class='appendix-card' data-apid='" + ap.id + "'>" +
+      "<div class='ap-head'>" +
+        "<div class='cell-wrap' style='flex:1;min-width:0'><input value='" + esc(ap.title) + "' data-ap-title='" + ap.id + "' data-cell='" + ap.id + "_title' title='可编辑附表标题' style='width:100%'>" + micBtnHtml(ap.id + "_title") + "</div>" +
+        (ap.custom ? "<span class='tpl-tag'>自定义</span>" : "<span class='tpl-tag'>标准</span>") +
+        "<span class='actions' style='display:flex;gap:4px;margin-left:auto'>" +
+          "<button class='mini' data-ap='" + ap.id + "' data-apact='add' title='增加一行'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M12 5v14M5 12h14'/></svg></button>" +
+          "<button class='mini' data-ap='" + ap.id + "' data-apact='saveas' title='另存为模板'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 4h11l4 4v12H5z'/><path d='M8 4v5h8V4'/></svg></button>" +
+          "<button class='mini danger' data-ap='" + ap.id + "' data-apact='remove' title='移除附表'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13'/></svg></button>" +
+        "</span></div>" +
+      "<div class='ap-body'><table><colgroup>" + ap.columns.map(() => "<col style='width:auto'>").join("") + "<col style='width:60px'></colgroup>" +
+        "<thead><tr>" + ap.columns.map(c => "<th>" + esc(c) + "</th>").join("") + "<th>操作</th></tr></thead>" +
+        "<tbody>" + body + "</tbody></table></div>" + sumRow +
+      "</div>";
+  }).join("");
+}
+
+function renderNotes(){
+  const area = document.getElementById("noteArea");
+  if(!quote.notes.length){
+    area.innerHTML = "<div class='empty-tip' style='border:1px dashed var(--line);border-radius:8px'>暂无备注条款。点击「备注模板」套用默认条款，或「+ 新增条款」手动添加。</div>";
+    return;
+  }
+  area.innerHTML = quote.notes.map(n => {
+    return "<div class='note-item" + (n.enabled ? "" : " disabled") + "' data-nid='" + n.id + "'>" +
+      "<div class='ni-head'>" +
+        "<span class='switch" + (n.enabled ? " on" : "") + "' data-note-switch='" + n.id + "' role='switch' aria-checked='" + (n.enabled?"true":"false") + "'></span>" +
+        "<div class='cell-wrap' style='flex:1;min-width:0'><input type='text' value='" + esc(n.title) + "' data-note-title='" + n.id + "' data-cell='" + n.id + "_title' placeholder='条款标题' style='width:100%'>" + micBtnHtml(n.id + "_title") + "</div>" +
+        "<button class='mini danger' data-note-del='" + n.id + "' title='删除条款'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13'/></svg></button>" +
+      "</div>" +
+      "<div class='ni-body'><div class='cell-wrap'><textarea data-note-text='" + n.id + "' data-cell='" + n.id + "_text' " + (n.enabled ? "" : "disabled") + ">" + esc(n.text) + "</textarea>" + micBtnHtml(n.id + "_text") + "</div></div>" +
+      "</div>";
+  }).join("");
+}
+
+function micBtnHtml(fid){
+  return "<button class='mic-btn' data-mic='" + fid + "' title='语音输入'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='3' width='6' height='11' rx='3'/><path d='M5 11a7 7 0 0 0 14 0M12 18v3'/></svg></button>";
+}
+function wrapVoice(id, inner){
+  return "<div class='cell-wrap' style='display:flex;align-items:center;justify-content:center'>" + inner + micBtnHtml(id) + "</div>";
+}
+
+function renderHeader(){
+  document.getElementById("fCompany").outerHTML = wrapVoice("fCompany", "<input class='q-company' id='fCompany' placeholder='公司名称' style='width:100%'>");
+  document.getElementById("fTitle").outerHTML = wrapVoice("fTitle", "<input class='q-title' id='fTitle' placeholder='报价单标题' style='width:100%'>");
+  document.getElementById("fProjectNo").outerHTML = wrapVoice("fProjectNo", "<input id='fProjectNo' placeholder='____' style='width:140px'>");
+  document.getElementById("fSelf").outerHTML = wrapVoice("fSelf", "<textarea class='plain-text' id='fSelf' placeholder='例：业主自购：800×800地砖约26片、开关插座约400元（预估）。'></textarea>");
+  document.getElementById("fSignA").outerHTML = wrapVoice("fSignA", "<input id='fSignA' placeholder='____________________' style='width:150px'>");
+  document.getElementById("fSignB").outerHTML = wrapVoice("fSignB", "<input id='fSignB' placeholder='____________________' style='width:150px'>");
+  document.getElementById("fSignDate").outerHTML = wrapVoice("fSignDate", "<input id='fSignDate' placeholder='______年____月____日' style='width:150px'>");
+  document.getElementById("fCompany").value = quote.header.company || "";
+  document.getElementById("fTitle").value = quote.header.title || "";
+  document.getElementById("fProjectNo").value = quote.header.projectNo || "";
+  document.getElementById("fDate").value = quote.header.date || "";
+  document.getElementById("fSelf").value = quote.selfPurchase || "";
+  document.getElementById("fSignA").value = quote.signature.partyA || "";
+  document.getElementById("fSignB").value = quote.signature.partyB || "";
+  document.getElementById("fSignDate").value = quote.signature.date || "";
+  document.querySelectorAll("textarea").forEach(autosize);
+}
+
+function renderAll(){
+  renderHeader();
+  renderItems();
+  renderAppendices();
+  renderNotes();
+  renderCalc();
+  updateUndoBtns();
+  document.querySelectorAll("textarea").forEach(autosize);
+}
+
+/* =====================================================================
+ * 部分二：事件 / 语音 / 拖拽 / 草稿 / 导出 / 分享 / 初始化
+ * ===================================================================== */
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg, isErr){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = isErr ? "show error" : "show";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = "", 2600);
+}
+
+/* ---------- 通用输入绑定（委托） ---------- */
+/* 单元格数据定位：main = "<itemId>_<field>"；附表 = "<apId>_r<ri>_c<ci>" */
+function applyCellValue(fieldId, value){
+  let m = fieldId.match(/^(.+)_r(\d+)_c(\d+)$/);
+  if(m){
+    const ap = quote.appendices.find(a => a.id === m[1]);
+    if(ap){
+      ap.rows[Number(m[2])][Number(m[3]) - 1] = value;
+      return "ap";
+    }
+    return null;
+  }
+  m = fieldId.match(/^(.+)_(name|desc|qty|unit|price)$/);
+  if(m){
+    const it = quote.items.find(i => i.id === m[1]);
+    if(it){
+      it[m[2]] = value;
+      return m[2];
+    }
+  }
+  return null;
+}
+
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if(el.dataset && el.dataset.cell){
+    const fieldId = el.dataset.cell;
+    const kind = applyCellValue(fieldId, el.value);
+    if(kind === "qty" || kind === "price" || kind === "ap"){
+      // 联动重算金额
+      if(kind === "ap"){
+        const m = fieldId.match(/^(.+)_r(\d+)_c(\d+)$/);
+        const ap = quote.appendices.find(a => a.id === m[1]);
+        if(ap && ap.sumCol > 0 && Number(m[3]) === ap.sumCol){
+          const sum = ap.rows.reduce((s,r) => s + (Number(r[ap.sumCol-1])||0), 0);
+          const card = document.querySelector('.appendix-card[data-apid="' + ap.id + '"] .ap-summary b');
+          if(card) card.textContent = sum;
+        }
+      } else {
+        const m = fieldId.match(/^(.+)_(name|desc|qty|unit|price)$/);
+        const it = m && quote.items.find(i => i.id === m[1]);
+        if(it){
+          const row = document.querySelector('tr[data-id="' + it.id + '"] td.c-money');
+          if(row) row.textContent = money(itemAmount(it));
+        }
+      }
+      renderCalc();
+    }
+    autosize(el);
+  } else if(el.id === "fSelf" || el.id === "fCompany" || el.id === "fTitle" || el.id === "fProjectNo" || el.id === "fDate" || el.id === "fSignA" || el.id === "fSignB" || el.id === "fSignDate"){
+    if(el.id === "fSignA") quote.signature.partyA = el.value;
+    else if(el.id === "fSignB") quote.signature.partyB = el.value;
+    else if(el.id === "fSignDate") quote.signature.date = el.value;
+    else if(el.id === "fSelf") quote.selfPurchase = el.value;
+    else if(el.id === "fDate") quote.header.date = el.value;
+    else if(el.id === "fCompany") quote.header.company = el.value;
+    else if(el.id === "fTitle") quote.header.title = el.value;
+    else if(el.id === "fProjectNo") quote.header.projectNo = el.value;
+    autosize(el);
+  }
+});
+
+document.addEventListener("change", (e) => {
+  const el = e.target;
+  if(el.dataset && el.dataset.cell){ snapshot(); }
+  else if(["fSelf","fCompany","fTitle","fProjectNo","fDate","fSignA","fSignB","fSignDate"].includes(el.id)){ snapshot(); }
+  else if(el.dataset && el.dataset.noteTitle){ snapshot(); }
+  else if(el.dataset && el.dataset.noteText){ snapshot(); }
+});
+
+function autosize(el){
+  if(el && el.tagName === "TEXTAREA"){
+    el.style.height = "auto";
+    el.style.height = Math.max(el.scrollHeight + 2, 34) + "px";
+  }
+}
+
+/* ---------- 主表行操作（委托） ---------- */
+document.getElementById("mainTbody").addEventListener("click", (e) => {
+  if(e.target.closest("#btnAddItem")){
+    snapshot();
+    quote.items.push({id:uid(), name:"", desc:"", qty:1, unit:"项", price:0});
+    renderItems(); renderCalc();
+    return;
+  }
+  const btn = e.target.closest("button[data-act]");
+  if(!btn) return;
+  const tr = btn.closest("tr[data-id]");
+  const id = tr.dataset.id;
+  const idx = quote.items.findIndex(i => i.id === id);
+  if(idx < 0) return;
+  const act = btn.dataset.act;
+  if(act === "copy"){
+    snapshot();
+    const c = JSON.parse(JSON.stringify(quote.items[idx]));
+    c.id = uid();
+    quote.items.splice(idx + 1, 0, c);
+    renderItems(); renderCalc();
+    toast("已复制该报价项");
+  } else if(act === "del"){
+    if(quote.items.length <= 1){ toast("至少保留一项报价", true); return; }
+    snapshot();
+    quote.items.splice(idx, 1);
+    renderItems(); renderCalc();
+    toast("已删除该报价项");
+  }
+});
+
+/* ---------- 主表拖拽排序 ---------- */
+let dragId = null;
+document.getElementById("mainTbody").addEventListener("dragstart", (e) => {
+  const handle = e.target.closest(".grab");
+  if(!handle){ e.preventDefault(); return; }
+  const tr = e.target.closest("tr[data-id]");
+  if(!tr) return;
+  dragId = tr.dataset.id;
+  tr.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+  try{ e.dataTransfer.setData("text/plain", dragId); }catch(err){}
+});
+document.getElementById("mainTbody").addEventListener("dragend", (e) => {
+  const tr = e.target.closest("tr[data-id]");
+  if(tr) tr.classList.remove("dragging");
+  document.querySelectorAll("#mainTbody tr.drag-over").forEach(r => r.classList.remove("drag-over"));
+  dragId = null;
+});
+document.getElementById("mainTbody").addEventListener("dragover", (e) => {
+  e.preventDefault();
+  const tr = e.target.closest("tr[data-id]");
+  if(!tr || tr.dataset.id === dragId) return;
+  document.querySelectorAll("#mainTbody tr.drag-over").forEach(r => r.classList.remove("drag-over"));
+  tr.classList.add("drag-over");
+  e.dataTransfer.dropEffect = "move";
+});
+document.getElementById("mainTbody").addEventListener("drop", (e) => {
+  e.preventDefault();
+  const target = e.target.closest("tr[data-id]");
+  if(!target || !dragId || target.dataset.id === dragId) return;
+  const from = quote.items.findIndex(i => i.id === dragId);
+  const to = quote.items.findIndex(i => i.id === target.dataset.id);
+  if(from < 0 || to < 0) return;
+  snapshot();
+  const [moved] = quote.items.splice(from, 1);
+  quote.items.splice(to, 0, moved);
+  renderItems(); renderCalc();
+  toast("已调整排序");
+});
+
+/* ---------- 附表操作（委托） ---------- */
+document.getElementById("appendixArea").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-apact]");
+  if(!btn) return;
+  const apId = btn.dataset.ap;
+  const apIdx = quote.appendices.findIndex(a => a.id === apId);
+  if(apIdx < 0) return;
+  const ap = quote.appendices[apIdx];
+  const act = btn.dataset.apact;
+  if(act === "add"){
+    snapshot();
+    ap.rows.push(ap.columns.slice(1).map(() => ""));
+    renderAppendices();
+  } else if(act === "copy"){
+    snapshot();
+    const ri = Number(btn.dataset.ri);
+    ap.rows.splice(ri + 1, 0, ap.rows[ri].slice());
+    renderAppendices();
+  } else if(act === "del"){
+    snapshot();
+    const ri = Number(btn.dataset.ri);
+    if(ap.rows.length <= 1){ toast("至少保留一行", true); return; }
+    ap.rows.splice(ri, 1);
+    renderAppendices();
+  } else if(act === "remove"){
+    snapshot();
+    quote.appendices.splice(apIdx, 1);
+    renderAppendices();
+    toast("已移除附表");
+  } else if(act === "saveas"){
+    const name = prompt("另存为自定义附表模板，模板名称：", ap.title.replace(/^附表[:：]\s*/, "") || "自定义附表");
+    if(!name) return;
+    const tpls = getAppTpls();
+    tpls.push({id:uid(), title:ap.title, columns:ap.columns.slice(), sumCol:ap.sumCol, sumLabel:ap.sumLabel, rows:ap.rows.map(r => r.slice()), tplName:name});
+    setAppTpls(tpls);
+    toast("已保存为自定义模板：「" + name + "」");
+  }
+});
+
+/* 附表标题编辑 */
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if(el.dataset && el.dataset.apTitle){
+    const ap = quote.appendices.find(a => a.id === el.dataset.apTitle);
+    if(ap) ap.title = el.value;
+  }
+});
+document.addEventListener("change", (e) => {
+  const el = e.target;
+  if(el.dataset && el.dataset.apTitle){ snapshot(); }
+});
+
+/* ---------- 备注条款操作 ---------- */
+document.getElementById("noteArea").addEventListener("click", (e) => {
+  const sw = e.target.closest("[data-note-switch]");
+  if(sw){
+    const n = quote.notes.find(x => x.id === sw.dataset.noteSwitch);
+    if(n){ snapshot(); n.enabled = !n.enabled; renderNotes(); }
+    return;
+  }
+  const del = e.target.closest("[data-note-del]");
+  if(del){
+    const nid = del.dataset.noteDel;
+    snapshot();
+    quote.notes = quote.notes.filter(x => x.id !== nid);
+    renderNotes();
+  }
+});
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if(el.dataset && el.dataset.noteTitle){
+    const n = quote.notes.find(x => x.id === el.dataset.noteTitle);
+    if(n) n.title = el.value;
+  } else if(el.dataset && el.dataset.noteText){
+    const n = quote.notes.find(x => x.id === el.dataset.noteText);
+    if(n) n.text = el.value;
+    autosize(el);
+  }
+});
+document.getElementById("btnAddNote").addEventListener("click", () => {
+  snapshot();
+  const idx = quote.notes.length + 1;
+  quote.notes.push({id:uid(), title:"条款 " + idx, text:"", enabled:true});
+  renderNotes();
+});
+document.getElementById("btnNoteAllOn").addEventListener("click", () => {
+  snapshot();
+  quote.notes.forEach(n => n.enabled = true);
+  renderNotes(); toast("已全部启用");
+});
+document.getElementById("btnNoteAllOff").addEventListener("click", () => {
+  snapshot();
+  quote.notes.forEach(n => n.enabled = false);
+  renderNotes(); toast("已全部取消");
+});
+
+/* ---------- 弹窗控制 ---------- */
+function openModal(id){ document.getElementById(id).classList.add("open"); }
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll(".overlay").forEach(ov => {
+  ov.addEventListener("click", (e) => {
+    if(e.target === ov) ov.classList.remove("open");
+    const c = e.target.closest("[data-close]");
+    if(c) ov.classList.remove("open");
+  });
+});
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => o.classList.remove("open"));
+});
+
+/* ---------- 草稿 ---------- */
+function draftName(q){
+  const t = q.header.title || "报价单";
+  return (q.header.company || "") ? (q.header.company + " · " + t) : t;
+}
+document.getElementById("btnSave").addEventListener("click", saveDraft);
+function saveDraft(){
+  const drafts = getDrafts();
+  const name = draftName(quote) + "（" + (quote.header.date || "") + "）";
+  const now = new Date().toLocaleString("zh-CN", {hour12:false});
+  const existing = drafts.findIndex(d => d.name === name);
+  const rec = {id: uid(), name, updatedAt: now, quote: JSON.parse(JSON.stringify(quote))};
+  if(existing >= 0) drafts[existing] = rec; else drafts.unshift(rec);
+  if(drafts.length > 30) drafts.length = 30;
+  setDrafts(drafts);
+  toast("已保存草稿：「" + name + "」");
+}
+function renderDrafts(){
+  const drafts = getDrafts();
+  const box = document.getElementById("draftList");
+  if(!drafts.length){
+    box.innerHTML = "<div class='empty-tip'>暂无草稿。点击顶栏「保存」即可将当前报价单存为草稿。</div>";
+    return;
+  }
+  box.innerHTML = drafts.map(d => {
+    const st = d.quote.items.reduce((s,it) => s + (Number(it.qty)||0)*(Number(it.price)||0), 0);
+    return "<div class='draft-item' data-did='" + d.id + "'>" +
+      "<div style='flex:1;min-width:0'><div class='di-name'>" + esc(d.name) + "</div>" +
+      "<div class='di-meta'>" + esc(d.updatedAt) + " · " + d.quote.items.length + " 项 · 合计 ¥ " + money(st) + "</div></div>" +
+      "<div class='di-actions'><button class='mini danger' data-ddel='" + d.id + "' title='删除草稿'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13'/></svg></button></div>" +
+      "</div>";
+  }).join("");
+}
+document.getElementById("btnDrafts").addEventListener("click", () => { renderDrafts(); openModal("ovDrafts"); });
+document.getElementById("draftList").addEventListener("click", (e) => {
+  const del = e.target.closest("[data-ddel]");
+  if(del){
+    const drafts = getDrafts().filter(d => d.id !== del.dataset.ddel);
+    setDrafts(drafts);
+    renderDrafts();
+    toast("草稿已删除");
+    return;
+  }
+  const item = e.target.closest(".draft-item");
+  if(item){
+    const drafts = getDrafts();
+    const d = drafts.find(x => x.id === item.dataset.did);
+    if(d){ quote = JSON.parse(JSON.stringify(d.quote)); snapshot(); renderAll(); closeModal("ovDrafts"); toast("已载入草稿"); }
+  }
+});
+
+/* ---------- 新建 ---------- */
+document.getElementById("btnNew").addEventListener("click", () => {
+  if(quote && (quote.items.some(i => i.name) || quote.notes.some(n => n.text))){
+    if(!confirm("新建报价单将丢弃当前未保存为草稿的修改，继续？")) return;
+  }
+  quote = newQuote();
+  history = []; hIdx = -1;
+  renderAll();
+  saveCurrent();
+  toast("已新建报价单（基于参考模板）");
+});
+
+/* ---------- 撤销 / 重做 ---------- */
+document.getElementById("btnUndo").addEventListener("click", undo);
+document.getElementById("btnRedo").addEventListener("click", redo);
+
+/* ---------- 附表模板库 ---------- */
+function renderAppTplModal(){
+  const std = document.getElementById("stdAppGrid");
+  std.innerHTML = STANDARD_APPENDICES.map(t => {
+    const sumTxt = t.sumCol > 0 ? " · 含合计" : "";
+    return "<div class='tpl-card' data-addapp='" + t.id + "'>" +
+      "<div class='tc-title'>" + esc(t.title) + "<span class='tc-badge'>标准</span></div>" +
+      "<div class='tc-desc'>" + t.rows.length + " 行数据" + sumTxt + "</div></div>";
+  }).join("");
+  const cust = getAppTpls();
+  const grid = document.getElementById("customAppGrid");
+  const empty = document.getElementById("customAppEmpty");
+  if(!cust.length){
+    grid.innerHTML = ""; empty.style.display = "block";
+  } else {
+    empty.style.display = "none";
+    grid.innerHTML = cust.map(t => {
+      return "<div class='tpl-card custom' data-addapp='" + t.id + "'><div class='tc-title'>" + esc(t.tplName || t.title) +
+        "<span class='tc-badge'>自定义</span>" +
+        "<span class='tc-del' data-delapp='" + t.id + "' title='删除模板'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13'/></svg></span>" +
+        "</div><div class='tc-desc'>" + t.rows.length + " 行数据</div></div>";
+    }).join("");
+  }
+}
+document.getElementById("btnAddAppendix").addEventListener("click", () => { renderAppTplModal(); openModal("ovAppTpl"); });
+document.getElementById("btnAppTpl").addEventListener("click", () => { renderAppTplModal(); openModal("ovAppTpl"); });
+document.getElementById("stdAppGrid").addEventListener("click", (e) => {
+  const del = e.target.closest("[data-delapp]");
+  if(del){ e.stopPropagation(); const tpls = getAppTpls().filter(t => t.id !== del.dataset.delapp); setAppTpls(tpls); renderAppTplModal(); toast("模板已删除"); return; }
+  const card = e.target.closest("[data-addapp]");
+  if(!card) return;
+  const id = card.dataset.addapp;
+  let t = STANDARD_APPENDICES.find(x => x.id === id);
+  if(!t) t = getAppTpls().find(x => x.id === id);
+  if(!t) return;
+  snapshot();
+  quote.appendices.push({id:uid(), title:t.title, columns:t.columns.slice(), sumCol:t.sumCol, sumLabel:t.sumLabel, rows:t.rows.map(r => r.slice()), custom: !STANDARD_APPENDICES.some(s => s.id === id)});
+  renderAppendices();
+  closeModal("ovAppTpl");
+  toast("已添加附表");
+});
+document.getElementById("customAppGrid").addEventListener("click", (e) => {
+  const del = e.target.closest("[data-delapp]");
+  if(del){ e.stopPropagation(); const tpls = getAppTpls().filter(t => t.id !== del.dataset.delapp); setAppTpls(tpls); renderAppTplModal(); toast("模板已删除"); return; }
+  const card = e.target.closest("[data-addapp]");
+  if(card){
+    const t = getAppTpls().find(x => x.id === card.dataset.addapp);
+    if(t){
+      snapshot();
+      quote.appendices.push({id:uid(), title:t.title, columns:t.columns.slice(), sumCol:t.sumCol, sumLabel:t.sumLabel, rows:t.rows.map(r => r.slice()), custom:true});
+      renderAppendices();
+      closeModal("ovAppTpl");
+      toast("已添加附表");
+    }
+  }
+});
+
+/* ---------- 备注模板 ---------- */
+function renderNoteTplModal(){
+  const tpls = [...DEFAULT_NOTE_TEMPLATES, ...getNoteTpls().map(t => ({...t, builtin:false}))];
+  const grid = document.getElementById("noteTplGrid");
+  grid.innerHTML = tpls.map(t => {
+    const desc = t.desc || (t.clauses ? t.clauses.length + " 条条款" : "");
+    return "<div class='tpl-card" + (t.builtin ? "" : " custom") + "' data-noteapply='" + t.id + "'>" +
+      "<div class='tc-title'>" + esc(t.name) + "<span class='tc-badge'>" + (t.builtin ? "内置" : "自定义") + "</span></div>" +
+      "<div class='tc-desc'>" + esc(desc) + "</div></div>";
+  }).join("");
+}
+document.getElementById("btnNoteTpl").addEventListener("click", () => { renderNoteTplModal(); openModal("ovNoteTpl"); });
+document.getElementById("noteTplGrid").addEventListener("click", (e) => {
+  const card = e.target.closest("[data-noteapply]");
+  if(!card) return;
+  const id = card.dataset.noteapply;
+  let t = DEFAULT_NOTE_TEMPLATES.find(x => x.id === id);
+  if(!t) t = getNoteTpls().find(x => x.id === id);
+  if(!t) return;
+  if(quote.notes.some(n => n.text) && !confirm("套用模板将覆盖当前备注条款内容，继续？")) return;
+  snapshot();
+  quote.notes = t.clauses.map(c => ({id:uid(), title:c.title, text:c.text, enabled:true}));
+  renderNotes();
+  closeModal("ovNoteTpl");
+  toast("已套用备注模板：「" + t.name + "」");
+});
+document.getElementById("btnSaveNoteTpl").addEventListener("click", () => {
+  const name = document.getElementById("noteTplName").value.trim();
+  if(!name){ toast("请输入模板名称", true); return; }
+  if(!quote.notes.length){ toast("当前没有备注内容可保存", true); return; }
+  const tpls = getNoteTpls();
+  tpls.push({id:uid(), name, clauses: quote.notes.map(n => ({title:n.title, text:n.text})), desc: quote.notes.length + " 条条款"});
+  setNoteTpls(tpls);
+  document.getElementById("noteTplName").value = "";
+  renderNoteTplModal();
+  toast("备注模板已保存：「" + name + "」");
+});
+
+/* ---------- 金额设置 ---------- */
+document.getElementById("btnCalc").addEventListener("click", () => {
+  const c = quote.calc;
+  document.getElementById("cDiscountMode").value = c.discountMode;
+  document.getElementById("cDiscount").value = c.discount;
+  document.getElementById("cFreight").value = c.freight;
+  document.getElementById("cTax").value = c.tax;
+  document.getElementById("cSubLabel").value = c.subLabel || "";
+  updateDiscountRow();
+  openModal("ovCalc");
+});
+function updateDiscountRow(){
+  const mode = document.getElementById("cDiscountMode").value;
+  document.getElementById("cDiscountRow").style.display = mode === "off" ? "none" : "flex";
+  document.getElementById("cDiscountLabel").textContent = mode === "percent" ? "折扣比例（%）" : "折扣金额（元）";
+  document.getElementById("cDiscountHint").textContent = mode === "percent" ? "按合计的百分比打折，例：5 表示 95 折。" : "直接减免的固定金额。";
+}
+document.getElementById("cDiscountMode").addEventListener("change", (e) => {
+  updateDiscountRow();
+  snapshot();
+  quote.calc.discountMode = e.target.value;
+  renderCalc();
+});
+["cDiscount","cFreight","cTax"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    const val = el.value;
+    if(id === "cDiscount") quote.calc.discount = val;
+    else if(id === "cFreight") quote.calc.freight = val;
+    else if(id === "cTax") quote.calc.tax = val;
+    renderCalc();
+  });
+  el.addEventListener("change", snapshot);
+});
+document.getElementById("cSubLabel").addEventListener("input", (e) => { quote.calc.subLabel = e.target.value; renderCalc(); });
+document.getElementById("cSubLabel").addEventListener("change", snapshot);
+
+/* ---------- 打印 / PDF ---------- */
+document.getElementById("btnPrint").addEventListener("click", () => {
+  // 确保编辑中的输入已提交
+  const act = document.activeElement;
+  if(act && act.blur) act.blur();
+  setTimeout(() => window.print(), 60);
+});
+
+/* ---------- 导出 Excel ---------- */
+document.getElementById("btnExcel").addEventListener("click", exportExcel);
+function exportExcel(){
+  const doExport = () => {
+    if(typeof XLSX === "undefined"){ fallbackCSV(); return; }
+    const wb = XLSX.utils.book_new();
+    // Sheet1: 报价明细
+    const rows = [];
+    rows.push([quote.header.company || ""]);
+    rows.push([quote.header.title || ""]);
+    rows.push(["工程编号：" + (quote.header.projectNo || "____") + "    报价日期：" + (quote.header.date || "")]);
+    rows.push(["序号","项目名称","施工内容及说明","数量","单位","单价（元）","金额（元）"]);
+    quote.items.forEach((it, i) => {
+      rows.push([i+1, it.name, it.desc, it.qty, it.unit, it.price, itemAmount(it)]);
+    });
+    const t = calcTotals();
+    rows.push([quote.calc.subLabel || "合计金额（元，税前）", "", "", "", "", "", Math.round(t.st * 100) / 100]);
+    if(t.showCalc){
+      if(t.discount > 0) rows.push(["折扣", "", "", "", "", "", -Math.round(t.discount * 100) / 100]);
+      if(t.tax > 0) rows.push(["税金（" + (Number(quote.calc.tax)||0) + "%）", "", "", "", "", "", Math.round(t.tax * 100) / 100]);
+      if(t.freight > 0) rows.push(["运费", "", "", "", "", "", Math.round(t.freight * 100) / 100]);
+      rows.push(["最终总价", "", "", "", "", "", Math.round(t.total * 100) / 100]);
+    }
+    rows.push([]);
+    rows.push(["业主自购：" + (quote.selfPurchase || "")]);
+    const ws1 = XLSX.utils.aoa_to_sheet(rows);
+    ws1["!cols"] = [{wch:6},{wch:22},{wch:60},{wch:8},{wch:7},{wch:13},{wch:13}];
+    ws1["!merges"] = [
+      {s:{r:0,c:0},e:{r:0,c:6}}, {s:{r:1,c:0},e:{r:1,c:6}},
+      {s:{r:2,c:0},e:{r:2,c:6}}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws1, "报价明细");
+    // 附表
+    quote.appendices.forEach((ap, i) => {
+      const aRows = [[ap.title]];
+      aRows.push(ap.columns.slice());
+      ap.rows.forEach(r => aRows.push([aRows.length - 1].concat(r)));
+      const ws = XLSX.utils.aoa_to_sheet(aRows);
+      ws["!merges"] = [{s:{r:0,c:0},e:{r:0,c:ap.columns.length}}];
+      ws["!cols"] = ap.columns.map(() => ({wch:16}));
+      XLSX.utils.book_append_sheet(wb, ws, "附表" + (i + 1));
+    });
+    // 备注与签字
+    const nRows = [["备注"]];
+    quote.notes.filter(n => n.enabled).forEach(n => nRows.push([n.title, n.text]));
+    nRows.push([]);
+    nRows.push(["业主（甲方）签字：" + (quote.signature.partyA || "____________________")]);
+    nRows.push(["施工方（乙方）签字：" + (quote.signature.partyB || "____________________")]);
+    nRows.push(["日期：" + (quote.signature.date || "______年____月____日")]);
+    const wsN = XLSX.utils.aoa_to_sheet(nRows);
+    wsN["!cols"] = [{wch:18},{wch:80}];
+    XLSX.utils.book_append_sheet(wb, wsN, "备注与签字");
+    const fname = (quote.header.company || "报价单") + "-" + (quote.header.title || "报价") + ".xlsx";
+    XLSX.writeFile(wb, fname);
+    toast("已导出 Excel");
+  };
+  if(typeof XLSX === "undefined"){
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    s.onload = doExport;
+    s.onerror = () => { toast("Excel 组件加载失败，已改用 CSV 导出", true); fallbackCSV(); };
+    document.head.appendChild(s);
+  } else doExport();
+}
+function fallbackCSV(){
+  const L = [];
+  L.push(quote.header.company || "", quote.header.title || "", "工程编号：" + (quote.header.projectNo || "____") + " 报价日期：" + (quote.header.date || ""));
+  L.push("序号,项目名称,施工内容及说明,数量,单位,单价（元）,金额（元）");
+  quote.items.forEach((it, i) => L.push([i+1, it.name, it.desc, it.qty, it.unit, it.price, itemAmount(it)].map(csvEsc).join(",")));
+  const t = calcTotals();
+  L.push(csvEsc(quote.calc.subLabel || "合计金额（元，税前）") + ",,,,,," + t.st.toFixed(2));
+  quote.appendices.forEach(ap => {
+    L.push("");
+    L.push(csvEsc(ap.title));
+    L.push(ap.columns.map(csvEsc).join(","));
+    ap.rows.forEach(r => L.push([""].concat(r).map(csvEsc).join(",")));
+  });
+  L.push("");
+  L.push(csvEsc("备注"));
+  quote.notes.filter(n => n.enabled).forEach(n => L.push(csvEsc(n.title) + "," + csvEsc(n.text)));
+  L.push(csvEsc("业主（甲方）签字：" + (quote.signature.partyA || "____________________")));
+  L.push(csvEsc("施工方（乙方）签字：" + (quote.signature.partyB || "____________________")));
+  L.push(csvEsc("日期：" + (quote.signature.date || "______年____月____日")));
+  const blob = new Blob(["\ufeff" + L.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (quote.header.company || "报价单") + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("已导出 CSV（Excel 可打开）");
+}
+function csvEsc(v){
+  v = String(v == null ? "" : v).replace(/"/g, "\"\"");
+  return /[",\n]/.test(v) ? "\"" + v + "\"" : v;
+}
+
+/* ---------- 分享链接 ---------- */
+document.getElementById("btnShare").addEventListener("click", async () => {
+  openModal("ovShare");
+  const input = document.getElementById("shareUrl");
+  input.value = "正在生成链接…";
+  try{
+    const payload = await encodePayload(quote);
+    const base = location.href.split("#")[0];
+    input.value = base + "#share=" + payload;
+  }catch(err){
+    input.value = "";
+    toast("链接生成失败", true);
+  }
+});
+async function encodePayload(obj){
+  const json = JSON.stringify(obj);
+  const bytes = new TextEncoder().encode(json);
+  let out;
+  if(typeof CompressionStream !== "undefined"){
+    try{
+      const cs = new CompressionStream("deflate-raw");
+      const stream = new Blob([bytes]).stream().pipeThrough(cs);
+      out = new Uint8Array(await new Response(stream).arrayBuffer());
+      return "d" + b64url(out);
+    }catch(e){ out = bytes; }
+  } else out = bytes;
+  return b64url(out);
+}
+function b64url(u8){
+  let bin = "";
+  const CH = 0x8000;
+  for(let i = 0; i < u8.length; i += CH){
+    bin += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+  }
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+async function decodePayload(p){
+  let bytes;
+  const bin = atob(p.replace(/-/g,"+").replace(/_/g,"/"));
+  const u8 = Uint8Array.from(bin, c => c.charCodeAt(0));
+  if(p.startsWith("d")){
+    const ds = new DecompressionStream("deflate-raw");
+    bytes = new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer());
+  } else bytes = u8;
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+document.getElementById("btnShareCopy").addEventListener("click", async () => {
+  const url = document.getElementById("shareUrl").value;
+  if(!url || url.startsWith("正在生成")) return;
+  try{
+    await navigator.clipboard.writeText(url);
+    toast("链接已复制");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("链接已复制"); }catch(err){ toast("复制失败，请手动选择复制", true); }
+    ta.remove();
+  }
+});
+
+/* ---------- 语音输入（Web Speech API） ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let voiceField = null;
+let voiceEl = null;
+let voiceFinal = "";
+
+document.addEventListener("click", (e) => {
+  const mic = e.target.closest("[data-mic]");
+  if(!mic) return;
+  e.preventDefault();
+  const fid = mic.dataset.mic;
+  if(!SR){ toast("当前浏览器不支持语音输入，请使用 Chrome / Edge", true); return; }
+  if(voiceField === fid && recognition){ stopVoice(); return; }
+  startVoice(fid);
+});
+
+function findVoiceField(fid){
+  return document.querySelector('[data-cell="' + fid + '"]') || document.getElementById(fid);
+}
+function fieldLabel(fid){
+  if(!fid) return "";
+  if(fid.endsWith("_name")) return "项目名称";
+  if(fid.endsWith("_desc")) return "施工内容及说明";
+  if(fid.endsWith("_qty")) return "数量";
+  if(fid.endsWith("_unit")) return "单位";
+  if(fid.endsWith("_price")) return "单价";
+  if(fid.endsWith("_title")) return "标题";
+  if(fid.endsWith("_text")) return "条款内容";
+  const map = {fCompany:"公司名称", fTitle:"报价单标题", fProjectNo:"工程编号", fSelf:"业主自购说明", fSignA:"甲方签字", fSignB:"乙方签字", fSignDate:"日期"};
+  return map[fid] || "当前输入框";
+}
+function startVoice(fid){
+  const el = findVoiceField(fid);
+  if(!el){ toast("未找到目标输入框", true); return; }
+  if(!recognition){
+    recognition = new SR();
+    recognition.lang = "zh-CN";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.onresult = (ev) => {
+      let interim = "";
+      voiceFinal = "";
+      for(let i = ev.resultIndex; i < ev.results.length; i++){
+        const r = ev.results[i];
+        if(r.isFinal) voiceFinal += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      if(voiceFinal){
+        el.value = voiceFinal;
+        el.dispatchEvent(new Event("input", {bubbles:true}));
+      }
+    };
+    recognition.onend = () => {
+      hideVoiceBar();
+      const micBtn = document.querySelector('.mic-btn[data-mic="' + voiceField + '"]');
+      if(micBtn) micBtn.classList.remove("recording");
+      if(voiceField && voiceFinal){ snapshot(); toast("语音已填入「" + fieldLabel(voiceField) + "」"); }
+      voiceField = null; voiceEl = null; recognition = null;
+    };
+    recognition.onerror = (ev) => {
+      hideVoiceBar();
+      const micBtn = document.querySelector('.mic-btn[data-mic="' + voiceField + '"]');
+      if(micBtn) micBtn.classList.remove("recording");
+      recognition = null;
+      if(ev.error === "not-allowed" || ev.error === "service-not-allowed") toast("麦克风权限被拒绝", true);
+      else if(ev.error !== "aborted") toast("语音识别出错，请重试", true);
+      voiceField = null;
+    };
+  }
+  voiceField = fid;
+  voiceEl = el;
+  voiceFinal = "";
+  const micBtn = document.querySelector('.mic-btn[data-mic="' + fid + '"]');
+  if(micBtn) micBtn.classList.add("recording");
+  const bar = document.getElementById("voiceBar");
+  document.getElementById("voiceTarget").textContent = fieldLabel(fid);
+  bar.classList.add("show");
+  try{ recognition.start(); }catch(err){ toast("语音识别启动失败", true); }
+}
+function stopVoice(){
+  if(recognition){ try{ recognition.stop(); }catch(e){} }
+  hideVoiceBar();
+  const micBtn = document.querySelector('.mic-btn[data-mic="' + voiceField + '"]');
+  if(micBtn) micBtn.classList.remove("recording");
+}
+function hideVoiceBar(){ document.getElementById("voiceBar").classList.remove("show"); }
+document.getElementById("voiceStopBtn").addEventListener("click", stopVoice);
+
+/* ---------- 键盘快捷键 ---------- */
+document.addEventListener("keydown", (e) => {
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z"){
+    if(e.shiftKey) redo(); else undo();
+    e.preventDefault();
+  } else if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y"){
+    redo(); e.preventDefault();
+  } else if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){
+    e.preventDefault(); saveDraft();
+  } else if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n"){
+    e.preventDefault(); document.getElementById("btnNew").click();
+  } else if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p"){
+    e.preventDefault(); document.getElementById("btnPrint").click();
+  }
+});
+
+/* ---------- 初始化 ---------- */
+async function init(){
+  let loaded = null;
+  const hash = location.hash;
+  if(hash && hash.startsWith("#share=")){
+    try{
+      loaded = await decodePayload(hash.slice(7));
+      toast("已从分享链接载入报价单");
+    }catch(e){ toast("分享链接解析失败", true); }
+  }
+  if(!loaded){
+    const saved = loadCurrent();
+    if(saved) loaded = saved;
+  }
+  quote = loaded || newQuote();
+  if(!loaded){ /* 首次使用：直接使用参考模板并自动保存 */ }
+  history = [JSON.parse(JSON.stringify(quote))];
+  hIdx = 0;
+  renderAll();
+  saveCurrent();
+  updateUndoBtns();
+}
+init();
+
+/* =====================================================================
+ * 报价王 v1.0 完成 —— 全部功能纯前端实现，数据存于浏览器 localStorage
+ * ===================================================================== */
+</script>
+</body>
+</html>
